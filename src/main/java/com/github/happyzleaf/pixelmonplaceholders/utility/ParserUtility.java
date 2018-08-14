@@ -1,7 +1,14 @@
 package com.github.happyzleaf.pixelmonplaceholders.utility;
 
 import com.github.happyzleaf.pixelmonplaceholders.PPConfig;
+import com.google.common.collect.ListMultimap;
+import com.google.common.collect.MultimapBuilder;
+import com.pixelmonmod.pixelmon.api.spawning.SpawnInfo;
+import com.pixelmonmod.pixelmon.api.spawning.SpawnSet;
+import com.pixelmonmod.pixelmon.api.spawning.archetypes.entities.pokemon.SpawnInfoPokemon;
+import com.pixelmonmod.pixelmon.api.spawning.util.SetLoader;
 import com.pixelmonmod.pixelmon.api.world.WeatherType;
+import com.pixelmonmod.pixelmon.api.world.WorldTime;
 import com.pixelmonmod.pixelmon.battles.attacks.AttackBase;
 import com.pixelmonmod.pixelmon.entities.npcs.registry.DropItemRegistry;
 import com.pixelmonmod.pixelmon.entities.npcs.registry.PokemonDropInformation;
@@ -21,6 +28,7 @@ import me.rojo8399.placeholderapi.NoValueException;
 import net.minecraft.item.ItemStack;
 import net.minecraft.util.ResourceLocation;
 import net.minecraft.world.World;
+import net.minecraft.world.biome.Biome;
 import net.minecraftforge.fml.common.registry.ForgeRegistries;
 import org.apache.commons.lang3.ArrayUtils;
 import org.spongepowered.api.entity.living.player.Player;
@@ -29,6 +37,7 @@ import javax.annotation.Nullable;
 import java.lang.reflect.Field;
 import java.text.DecimalFormat;
 import java.util.*;
+import java.util.stream.Collectors;
 
 /***************************************
  * PixelmonPlaceholders
@@ -38,6 +47,40 @@ import java.util.*;
  * Copyright (c). All rights reserved.
  ***************************************/
 public class ParserUtility {
+	private static ListMultimap<String, Biome> biomesMap = MultimapBuilder.treeKeys().arrayListValues(1).build(); //Pokemon name to Biomes List
+	private static ListMultimap<String, WorldTime> timeMap = MultimapBuilder.treeKeys().arrayListValues(1).build(); //Pokemon name to Time List
+	private static ListMultimap<String, WeatherType> weatherMap = MultimapBuilder.treeKeys().arrayListValues(1).build(); //Pokemon name to Weather List
+	
+	public static void loadData() {
+		for (SpawnSet set : SetLoader.<SpawnSet>getAllSets()) {
+			for (SpawnInfo u1 : set.spawnInfos) if (u1 instanceof SpawnInfoPokemon) {
+				SpawnInfoPokemon info = (SpawnInfoPokemon) u1;
+				
+				//Biomes
+				if (info.condition != null && info.condition.biomes != null && !info.condition.biomes.isEmpty()) {
+					biomesMap.putAll(info.getPokemonSpec().name, info.condition.biomes);
+				}
+				if (info.compositeCondition != null && info.compositeCondition.conditions != null && !info.compositeCondition.conditions.isEmpty()) {
+					biomesMap.putAll(info.getPokemonSpec().name, info.compositeCondition.conditions.stream().filter(s -> s.biomes != null && !s.biomes.isEmpty()).flatMap(s -> s.biomes.stream()).collect(Collectors.toList()));
+				}
+				
+				//Time
+				if (info.condition != null && info.condition.times != null && !info.condition.times.isEmpty()) {
+					timeMap.putAll(info.getPokemonSpec().name, info.condition.times);
+				}
+				
+				//Weather
+				if (info.condition != null && info.condition.weathers != null && !info.condition.weathers.isEmpty()) {
+					weatherMap.putAll(info.getPokemonSpec().name, info.condition.weathers);
+				}
+			}
+		}
+		/*System.out.println("FOUND:");
+		for (String poke : biomesMap.keySet()) {
+			System.out.println(poke + ": " + Arrays.toString(biomesMap.get(poke).stream().map(biome -> biome.biomeName).toArray()));
+		}*/
+	}
+	
 	private static HashMap<EnumPokemon, PokemonDropInformation> pokemonDrops;
 	private static Field mainDrop, rareDrop, optDrop1, optDrop2;
 	private static Field friendship, level, type, weather;
@@ -295,7 +338,8 @@ public class ParserUtility {
 						} else {
 							return PPConfig.moveNotAvailableText;
 						}
-					} catch (NumberFormatException ignored) {}
+					} catch (NumberFormatException ignored) {
+					}
 				}
 				break;
 			case "moves": //TODO test
