@@ -43,6 +43,9 @@ minecraft {
 }
 
 repositories {
+    flatDir {
+        dirs 'libs'
+    }
     mavenCentral()
     maven {
         url 'https://repo.spongepowered.org/maven/'
@@ -56,6 +59,8 @@ dependencies {
     compile 'org.spongepowered:spongeapi:7.1.0-SNAPSHOT'
     compile 'com.github.Aaron1011:PlaceholderAPI:e5bd493c912ae'
     compile 'com.github.randombyte-developer:entity-particles:v3.0.0'
+    compile name: "PixelmonGenerations-1.12.2-2.2.1"
+    compile name: "minecraftserver-1.12.2"
 }
 
 processResources {
