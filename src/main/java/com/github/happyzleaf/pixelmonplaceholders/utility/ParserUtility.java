@@ -9,8 +9,6 @@ import com.pixelmonmod.pixelmon.entities.npcs.registry.DropItemRegistry;
 import com.pixelmonmod.pixelmon.entities.npcs.registry.PokemonDropInformation;
 import com.pixelmonmod.pixelmon.entities.pixelmon.Entity3HasStats;
 import com.pixelmonmod.pixelmon.entities.pixelmon.EntityPixelmon;
-import com.pixelmonmod.pixelmon.entities.pixelmon.specs.UnbreedableFlag;
-import com.pixelmonmod.pixelmon.entities.pixelmon.specs.UntradeableFlag;
 import com.pixelmonmod.pixelmon.entities.pixelmon.stats.BaseStats;
 import com.pixelmonmod.pixelmon.entities.pixelmon.stats.EVsStore;
 import com.pixelmonmod.pixelmon.entities.pixelmon.stats.IVStore;
@@ -137,26 +135,9 @@ public class ParserUtility {
 					//TODO uncomment when fixed
 					// return rarity <= 0 ? EnumPokemon.legendaries.contains(pokemon.name) ? 0 : 1 : rarity;
 				}
-				break;
-			case "postevolutions":
-				/*
-				 * "postevolutions" does not work how you might think.
-				 * The post evolution of Bulbasaur is only Ivysaur, while the post evolutions of Eevee are all the eevolutions.
-				 * The problem is that even if i'd like to add Venusaur to the post evolutions of Bulbasaur, after Ivysaur,
-				 * i can't know it programmatically without doing any kind of human sacrifice,
-				 * and i wound't know if i'd have to add them (the evolutions of an evolution) only if the post evolutions is one or so,
-				 * cause, even if i'm sure that Umbreon does not have a post evolution,
-				 * i'm putting a big limit to the OOP which should work regardless of the poke.
-				 *
-				 * Yeah, i'm sure no one will understand what i've wrote, but don't worry, i'm the chosen, i'm gonna fix it myself and you won't even notice.
-				 */
-				return asReadableList(values, 2, stats.evolutions.stream().map(evolution -> evolution.to.name).toArray());
-			case "preevolutions":
+				break;case "preevolutions":
 				return asReadableList(values, 2, stats.preEvolutions);
-			case "evolutions": //Evolutions in order since 1.3.0
-				//WHAT AM I DOING
-				return asReadableList(values, 2, ArrayUtils.addAll(ArrayUtils.add(ArrayUtils.addAll(new Object[]{}, stats.preEvolutions), pokemon.name), stats.evolutions.stream().map(evolution -> evolution.to.name).toArray()));
-			case "ability":
+				case "ability":
 				if (values.length == 3) {
 					String value1 = values[2];
 					int ability = value1.equals("1") ? 0 : value1.equals("2") ? 1 : value1.equalsIgnoreCase("h") ? 2 : -1;
@@ -174,115 +155,23 @@ public class ParserUtility {
 				//return asReadableList(values, 2, Arrays.stream(stats.biomeIDs).map(id -> Biome.getBiome(id).getBiomeName()).toArray());
 			case "spawnlocations":
 				return asReadableList(values, 2, stats.spawnLocations);
-			case "doesevolve": //1.2.2
-				return stats.evolutions.size() != 0;
-			case "evolutionscount": //1.2.2
-				return stats.evolutions.size();
-			case "evolution": //Modified in 1.2.2
-				if (values.length >= 3) {
-					int evolution;
-					try {
-						evolution = Integer.parseInt(values[2]) - 1;
-					} catch (NumberFormatException e) {
-						throw new NoValueException();
-					}
-					if (stats.evolutions.size() <= 0) {
-						throw new NoValueException();
-					}
-					if (stats.evolutions.size() <= evolution) {
-						return "Does not evolve.";
-					} else {
-						Evolution evol = stats.evolutions.get(evolution);
-						if (values.length < 4) {
-							return stats.evolutions.get(evolution).to.name;
-						} else { //Drastically changed since 1.3.0
-							String choice = values[3];
-							if (choice.equals("list")) { //TODO write better
-								List<String> conditions = new ArrayList<>();
-								for (Map.Entry<String, EvoParser> entry : evoParsers.entrySet()) {
-									for (EvoCondition cond : evol.conditions) {
-										if (cond.getClass().equals(entry.getValue().clazz)) {
-											conditions.add(entry.getKey());
-										}
-									}
-								}
-								if (!conditions.contains("level") && evol instanceof LevelingEvolution) {
-									conditions.add("level");
-								}
-								return asReadableList(values, 4, conditions.toArray());
-							} else {
-								try {
-									EvoParser parser = evoParsers.get(values[3]);
-									if (parser == null) throw new NoValueException();
-									EvoCondition cond = null;
-									for (EvoCondition c : evol.conditions) {
-										if (c.getClass().equals(parser.clazz)) {
-											cond = c;
-										}
-									}
-									if (cond == null) {
-										if (values[3].equals("level") && evol instanceof LevelingEvolution) {
-											return ((LevelingEvolution) evol).level;
-										}
-										throw new NoValueException();
-									}
-									try {
-										//noinspection unchecked
-										return parser.parse(cond, values, 4);
-									} catch (IllegalAccessException e) {
-										e.printStackTrace();
-									}
-								} catch (NoValueException e) {
-									return PPConfig.evolutionNotAvailableText;
-								}
-							}
-
-						}
-					}
-				}
-				break;
 			case "type":
 				return asReadableList(values, 2, stats.getTypeList().toArray());
 			case "basestats":
 				if (values.length >= 3) {
 					switch (values[2]) {
 						case "hp":
-							return stats.stats.get(StatsType.HP);
+							return stats.get(StatsType.HP);
 						case "atk":
-							return stats.stats.get(StatsType.Attack);
+							return stats.get(StatsType.Attack);
 						case "def":
-							return stats.stats.get(StatsType.Defence);
+							return stats.get(StatsType.Defence);
 						case "spa":
-							return stats.stats.get(StatsType.SpecialAttack);
+							return stats.get(StatsType.SpecialAttack);
 						case "spd":
-							return stats.stats.get(StatsType.SpecialDefence);
+							return stats.get(StatsType.SpecialDefence);
 						case "spe":
-							return stats.stats.get(StatsType.Speed);
-						case "yield":
-							if (values.length >= 4) {
-								switch (values[3]) {
-									case "hp":
-										return stats.evYields.get(StatsType.HP);
-									case "atk":
-										return stats.evYields.get(StatsType.Attack);
-									case "def":
-										return stats.evYields.get(StatsType.Defence);
-									case "spa":
-										return stats.evYields.get(StatsType.SpecialAttack);
-									case "spd":
-										return stats.evYields.get(StatsType.SpecialDefence);
-									case "spe":
-										return stats.evYields.get(StatsType.Speed);
-								}
-							}
-							break;
-						case "yields": //TODO for each?
-							return stats.evYields.get(StatsType.HP)
-									+ stats.evYields.get(StatsType.Attack)
-									+ stats.evYields.get(StatsType.Defence)
-									+ stats.evYields.get(StatsType.SpecialAttack)
-									+ stats.evYields.get(StatsType.SpecialDefence)
-									+ stats.evYields.get(StatsType.Speed);
+							return stats.get(StatsType.Speed);
 					}
 				}
 				break;
@@ -333,7 +222,7 @@ public class ParserUtility {
 	}
 
 	public static Object[] getAllAttackNames(BaseStats stats) {
-		return stats.getAllMoves().stream().map(attack -> attack.baseAttack.getLocalizedName()).toArray();
+		return stats.abilities;
 	}
 
 	public static Object parsePokemonInfo(net.minecraft.entity.Entity owner, PlayerStorage storage, int[] id, String[] values) throws NoValueException {
@@ -373,46 +262,46 @@ public class ParserUtility {
 					if (values.length >= 3) {
 						switch (values[2]) {
 							case "hp":
-								return pokemon.stats.hp;
+								return pokemon.stats.HP;
 							case "atk":
-								return pokemon.stats.attack;
+								return pokemon.stats.Attack;
 							case "def":
-								return pokemon.stats.defence;
+								return pokemon.stats.Defence;
 							case "spa":
-								return pokemon.stats.specialAttack;
+								return pokemon.stats.SpecialAttack;
 							case "spd":
-								return pokemon.stats.specialDefence;
+								return pokemon.stats.SpecialDefence;
 							case "spe":
-								return pokemon.stats.speed;
+								return pokemon.stats.Speed;
 							case "ivs":
 								if (values.length >= 4) {
 									switch (values[3]) {
 										case "hp":
-											return pokemon.stats.ivs.HP;
+											return pokemon.stats.IVs.HP;
 										case "atk":
-											return pokemon.stats.ivs.Attack;
+											return pokemon.stats.IVs.Attack;
 										case "def":
-											return pokemon.stats.ivs.Defence;
+											return pokemon.stats.IVs.Defence;
 										case "spa":
-											return pokemon.stats.ivs.SpAtt;
+											return pokemon.stats.IVs.SpAtt;
 										case "spd":
-											return pokemon.stats.ivs.SpDef;
+											return pokemon.stats.IVs.SpDef;
 										case "spe":
-											return pokemon.stats.ivs.Speed;
+											return pokemon.stats.IVs.Speed;
 										case "total": //since 1.2.3
-											return pokemon.stats.ivs.HP
-													+ pokemon.stats.ivs.Attack
-													+ pokemon.stats.ivs.Defence
-													+ pokemon.stats.ivs.SpAtt
-													+ pokemon.stats.ivs.SpDef
-													+ pokemon.stats.ivs.Speed;
+											return pokemon.stats.IVs.HP
+													+ pokemon.stats.IVs.Attack
+													+ pokemon.stats.IVs.Defence
+													+ pokemon.stats.IVs.SpAtt
+													+ pokemon.stats.IVs.SpDef
+													+ pokemon.stats.IVs.Speed;
 										case "totalpercentage":
-											String result3 = "" + (pokemon.stats.ivs.HP
-													+ pokemon.stats.ivs.Attack
-													+ pokemon.stats.ivs.Defence
-													+ pokemon.stats.ivs.SpAtt
-													+ pokemon.stats.ivs.SpDef
-													+ pokemon.stats.ivs.Speed) * 100 / 186;
+											String result3 = "" + (pokemon.stats.IVs.HP
+													+ pokemon.stats.IVs.Attack
+													+ pokemon.stats.IVs.Defence
+													+ pokemon.stats.IVs.SpAtt
+													+ pokemon.stats.IVs.SpDef
+													+ pokemon.stats.IVs.Speed) * 100 / 186;
 											if (result3.substring(result3.indexOf(".") + 1).length() == 1) {
 												return result3.substring(0, result3.length() - 2);
 											} else {
@@ -425,31 +314,31 @@ public class ParserUtility {
 								if (values.length >= 4) {
 									switch (values[3]) {
 										case "hp":
-											return pokemon.stats.evs.hp;
+											return pokemon.stats.EVs.HP;
 										case "atk":
-											return pokemon.stats.evs.attack;
+											return pokemon.stats.EVs.Attack;
 										case "def":
-											return pokemon.stats.evs.defence;
+											return pokemon.stats.EVs.Defence;
 										case "spa":
-											return pokemon.stats.evs.specialAttack;
+											return pokemon.stats.EVs.SpecialAttack;
 										case "spd":
-											return pokemon.stats.evs.specialDefence;
+											return pokemon.stats.EVs.SpecialAttack;
 										case "spe":
-											return pokemon.stats.evs.speed;
+											return pokemon.stats.EVs.Speed;
 										case "total": //since 1.2.3
-											return pokemon.stats.evs.hp
-													+ pokemon.stats.evs.attack
-													+ pokemon.stats.evs.defence
-													+ pokemon.stats.evs.specialAttack
-													+ pokemon.stats.evs.specialDefence
-													+ pokemon.stats.evs.speed;
+											return pokemon.stats.EVs.HP
+													+ pokemon.stats.EVs.Attack
+													+ pokemon.stats.EVs.Defence
+													+ pokemon.stats.EVs.SpecialAttack
+													+ pokemon.stats.EVs.SpecialDefence
+													+ pokemon.stats.EVs.Speed;
 										case "totalpercentage":
-											String result4 = "" + (pokemon.stats.evs.hp
-													+ pokemon.stats.evs.attack
-													+ pokemon.stats.evs.defence
-													+ pokemon.stats.evs.specialAttack
-													+ pokemon.stats.evs.specialDefence
-													+ pokemon.stats.evs.speed) / 510;
+											String result4 = "" + (pokemon.stats.EVs.HP
+													+ pokemon.stats.EVs.Attack
+													+ pokemon.stats.EVs.Defence
+													+ pokemon.stats.EVs.SpecialAttack
+													+ pokemon.stats.EVs.SpecialDefence
+													+ pokemon.stats.EVs.Speed) / 510;
 											if (result4.substring(result4.indexOf(".") + 1).length() == 1) {
 												return result4.substring(0, result4.length() - 2);
 											} else {
@@ -505,15 +394,15 @@ public class ParserUtility {
 				case "shiny": //Since 1.3.0
 					return pokemon.getIsShiny();
 				case "hiddenpower":
-					return HiddenPower.getHiddenPowerType(pokemon.stats.ivs);
+					return HiddenPower.getHiddenPowerType(pokemon.stats.IVs);
 				case "ivtotalsum":
-					return sumIvs(pokemon.stats.ivs);
+					return sumIvs(pokemon.stats.IVs);
 				case "evtotalsum":
-					return sumEvs(pokemon.stats.evs);
+					return sumEvs(pokemon.stats.EVs);
 				case "ivtotalpercent":
-					return String.format("%.0f%%", ((float) sumIvs(pokemon.stats.ivs) / (float) getMaxIvs()) * 100);
+					return String.format("%.0f%%", ((float) sumIvs(pokemon.stats.IVs) / (float) getMaxIvs()) * 100);
 				case "evtotalpercent":
-					return String.format("%.0f%%", ((float) sumEvs(pokemon.stats.evs) / (float) getMaxEvs()) * 100);
+					return String.format("%.0f%%", ((float) sumEvs(pokemon.stats.EVs) / (float) getMaxEvs()) * 100);
 				case "texturelocation":
 					return getSprite(pokemon);
 				case "customtexture":
@@ -522,11 +411,6 @@ public class ParserUtility {
 					return pokemon.getForm();
                 case "aura":
                     return getAuraID(pokemon);
-				case "breedable":
-					return !((UnbreedableFlag) PokemonSpec.getSpecForKey("unbreedable")).matches(pokemon);
-				case "tradeable":
-					return !((UntradeableFlag) PokemonSpec.getSpecForKey("untradeable")).matches(pokemon);
-
 			}
 		}
 		return parsePokedexInfo(EnumPokemon.getFromNameAnyCase(pokemon.getPokemonName()), values);
@@ -592,7 +476,12 @@ public class ParserUtility {
 	}
 
 	private static int sumEvs(EVsStore eVsStore) {
-		return Arrays.stream(eVsStore.getArray()).sum();
+        return  + (eVsStore.HP
+                + eVsStore.Attack
+                + eVsStore.Defence
+                + eVsStore.SpecialAttack
+                + eVsStore.SpecialDefence
+                + eVsStore.Speed);
 	}
 
 	private static int getMaxIvs() {
@@ -667,29 +556,10 @@ public class ParserUtility {
 	private static Map<String, EvoParser> evoParsers = new HashMap<>();
 
 	static {
-		evoParsers.put("biome", new EvoParser<BiomeCondition>(BiomeCondition.class) {
-			@Override
-			public Object parse(BiomeCondition condition, String[] values, int index) { //TODO test
-				return asReadableList(values, index, condition.biomes.stream().map(biome -> ForgeRegistries.BIOMES.getValues().stream().filter(b -> biome.equalsIgnoreCase(b.biomeName)).findFirst().get()).toArray());
-			}
-		});
 		evoParsers.put("chance", new EvoParser<ChanceCondition>(ChanceCondition.class) {
 			@Override
 			public Object parse(ChanceCondition condition, String[] values, int index) {
 				return formatDouble(condition.chance);
-			}
-		});
-		evoParsers.put("stone", new EvoParser<EvoRockCondition>(EvoRockCondition.class) {
-			@Override
-			public Object parse(EvoRockCondition condition, String[] values, int index) throws NoValueException {
-				if (values.length > index) {
-					if (values[index].equals("biome")) {
-						return asReadableList(values, index + 1, Arrays.stream(condition.evolutionRock.biomes).map(biome -> biome.biomeName).toArray());
-					} else {
-						throw new NoValueException();
-					}
-				}
-				return condition.evolutionRock;
 			}
 		});
 		evoParsers.put("friendship", new EvoParser<FriendshipCondition>(FriendshipCondition.class) {
@@ -705,12 +575,6 @@ public class ParserUtility {
 				return asReadableList(values, index, condition.genders/*.stream().filter(gender -> gender != Gender.None)*/.toArray());
 			}
 		});
-		evoParsers.put("helditem", new EvoParser<HeldItemCondition>(HeldItemCondition.class) {
-			@Override
-			public Object parse(HeldItemCondition condition, String[] values, int index) { //TODO test
-				return ((HeldItem) ForgeRegistries.ITEMS.getValue(new ResourceLocation(condition.item.itemID))).getLocalizedName();
-			}
-		});
 		evoParsers.put("altitude", new EvoParser<HighAltitudeCondition>(HighAltitudeCondition.class) {
 			@Override
 			public Object parse(HighAltitudeCondition condition, String[] values, int index) {
@@ -721,12 +585,6 @@ public class ParserUtility {
 			@Override
 			public Object parse(LevelCondition condition, String[] values, int index) throws IllegalAccessException {
 				return level.getInt(condition);
-			}
-		});
-		evoParsers.put("move", new EvoParser<MoveCondition>(MoveCondition.class) {
-			@Override
-			public Object parse(MoveCondition condition, String[] values, int index) { //TODO test
-				return AttackBase.getAttackBase(condition.attackIndex).map(attackBase -> (Object) attackBase.getLocalizedName()).orElse(PPConfig.noneText);
 			}
 		});
 		evoParsers.put("movetype", new EvoParser<MoveTypeCondition>(MoveTypeCondition.class) {
