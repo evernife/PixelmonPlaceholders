@@ -67,7 +67,7 @@ public class Placeholders {
 						return String.valueOf(result2).substring(0, String.valueOf(result2).indexOf(".") + 3);
 					}
 				case "balance":
-					return formatBigNumbers(storage.getMoney());
+					return formatBigNumbers(storage.getCurrency());
 				case "team": //TODO move to %party_[...]%
 					if (values.length > 1) {
 						String[] pokeValues = Arrays.copyOfRange(values, 1, values.length);
