@@ -322,7 +322,7 @@ public class ParserUtility {
 										case "spa":
 											return pokemon.stats.EVs.SpecialAttack;
 										case "spd":
-											return pokemon.stats.EVs.SpecialAttack;
+											return pokemon.stats.EVs.SpecialDefence;
 										case "spe":
 											return pokemon.stats.EVs.Speed;
 										case "total": //since 1.2.3
